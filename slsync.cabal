@@ -1,0 +1,112 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: aa64debcd6373d41d14eb8ef0d76db14117066c6651ec368cf353732ae1ecc8e
+
+name:           slsync
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/slsync#readme>
+homepage:       https://github.com/githubuser/slsync#readme
+bug-reports:    https://github.com/githubuser/slsync/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2020 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/slsync
+
+library
+  exposed-modules:
+      Config
+      Connection
+      Effect
+      Query
+      ServerApplication
+      Session
+      State
+      StateQuery
+      WebSocketServer
+  other-modules:
+      Paths_slsync
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , envy
+    , http-types
+    , lens
+    , text
+    , tinylog
+    , transformers
+    , uuid
+    , wai
+    , wai-websockets
+    , warp
+    , websockets
+  default-language: Haskell2010
+
+executable slsync-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_slsync
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , envy
+    , http-types
+    , lens
+    , slsync
+    , text
+    , tinylog
+    , transformers
+    , uuid
+    , wai
+    , wai-websockets
+    , warp
+    , websockets
+  default-language: Haskell2010
+
+test-suite slsync-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_slsync
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , envy
+    , http-types
+    , lens
+    , slsync
+    , text
+    , tinylog
+    , transformers
+    , uuid
+    , wai
+    , wai-websockets
+    , warp
+    , websockets
+  default-language: Haskell2010
