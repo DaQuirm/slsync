@@ -172,6 +172,16 @@
                 "force-linebreak": false,
                 "linebreaks": "none",
                 "spaces": "none"
+            },
+            ":: in expression": {
+                "force-linebreak": false,
+                "linebreaks": "none",
+                "spaces": "both"
+            },
+            "<- in expression": {
+                "force-linebreak": false,
+                "linebreaks": "none",
+                "spaces": "both"
             }
         },
         "options": {

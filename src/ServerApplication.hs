@@ -57,8 +57,7 @@ application logger stateVar pending = do
   updateState logger stateVar (Connect connection)
 
   catch (forever (do
-                    string <- WebSocket.receiveData wsConnection
-                      :: IO ByteString
+                    string <- WebSocket.receiveData wsConnection :: IO ByteString
                     Logger.trace logger $ Logger.msg $
                       "Received message: " <> string))
         (updateState logger stateVar . Disconnect connection)
