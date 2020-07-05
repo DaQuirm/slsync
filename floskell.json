@@ -11,7 +11,7 @@
             "class": false,
             "import-module": true,
             "import-spec": true,
-            "let-binds": false,
+            "let-binds": true,
             "limits": [
                 10,
                 25

@@ -30,8 +30,8 @@ startServer = do
       putStrLn infoMessage
       stateVar <- newMVar State.empty
       let setLogLevel = Logger.setLogLevel logLevel
-          setOutput = Logger.setOutput $ Logger.Path "logs/slsync.log"
-          settings = setLogLevel . setOutput $ Logger.defSettings
+          setOutput   = Logger.setOutput $ Logger.Path "logs/slsync.log"
+          settings    = setLogLevel . setOutput $ Logger.defSettings
       logger <- Logger.new settings
       Logger.info logger $ Logger.msg infoMessage
       Warp.run port $ websocketsOr WebSocket.defaultConnectionOptions
