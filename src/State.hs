@@ -8,7 +8,7 @@ import           Control.Lens.TH ( makeLenses )
 import           Data.Map.Strict ( Map )
 import qualified Data.Map.Strict as Map
 import           Data.UUID       ( UUID )
-import           Session         ( Session, SessionId )
+import           Session         ( Session(..), SessionId )
 
 data State =
   State { _connections :: Map UUID Connection
@@ -26,3 +26,7 @@ empty =
 connect :: Connection -> State -> State
 connect connection@(Connection connectionId _) =
   (connections . at connectionId) ?~ connection
+
+createSession :: Session -> State -> State
+createSession session@(Session sessionId) =
+  (sessions . at sessionId) ?~ session

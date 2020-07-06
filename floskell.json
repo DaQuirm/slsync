@@ -111,7 +111,7 @@
         },
         "layout": {
             "app": "try-oneline",
-            "con-decls": "try-oneline",
+            "con-decls": "vertical",
             "declaration": "try-oneline",
             "export-spec-list": "try-oneline",
             "if": "try-oneline",

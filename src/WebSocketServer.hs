@@ -1,24 +1,23 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module WebSocketServer ( startServer ) where
 
 import           Control.Concurrent             ( newMVar )
 import           Data.Monoid                    ( (<>) )
-import           Network.HTTP.Types             ( status400 )
-import           Network.Wai                    ( Application, responseLBS )
 import qualified Network.Wai.Handler.Warp       as Warp
 import           Network.Wai.Handler.WebSockets ( websocketsOr )
 import qualified Network.WebSockets             as WebSocket
 import qualified System.Logger                  as Logger
 import qualified System.Envy                    as Envy
+import qualified Data.ByteString.Char8     as ByteString
+import           System.Logger ( Level(..), Logger )
 
+
+import State (State)
 import qualified State
-import           ServerApplication              ( application )
+import           ServerApplication              ( application, httpApp )
 import           Config                         ( Config(Config) )
-
-backupApp :: Application
-backupApp _ respond =
-  respond $ responseLBS status400 [] "Not a WebSocket request"
 
 startServer :: IO ()
 startServer = do
@@ -36,4 +35,4 @@ startServer = do
       Logger.info logger $ Logger.msg infoMessage
       Warp.run port $ websocketsOr WebSocket.defaultConnectionOptions
                                    (application logger stateVar)
-                                   backupApp
+                                   (httpApp logger stateVar)

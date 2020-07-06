@@ -6,4 +6,4 @@ type SessionId = Text
 
 data Session =
   Session { sessionId :: SessionId
-          }
+          } deriving Show

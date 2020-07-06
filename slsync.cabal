@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: aa64debcd6373d41d14eb8ef0d76db14117066c6651ec368cf353732ae1ecc8e
+-- hash: 3bea50d384a03a4b2b1a8892714cdec461ec080493a54e78e7a0cff0c9122aab
 
 name:           slsync
 version:        0.1.0.0
@@ -58,7 +58,7 @@ library
     , websockets
   default-language: Haskell2010
 
-executable slsync-exe
+executable slsync
   main-is: Main.hs
   other-modules:
       Paths_slsync
