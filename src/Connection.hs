@@ -2,14 +2,18 @@ module Connection where
 
 import           Data.UUID          ( UUID )
 import qualified Network.WebSockets as WebSockets
+import Data.Text (Text)
 
-data Connection = Connection UUID WebSockets.Connection
+type ConnectionId = UUID
+type ClientId = Text
+
+data Connection = Connection ConnectionId (Maybe ClientId) WebSockets.Connection
 
 instance Eq Connection where
-  (==) (Connection idA _) (Connection idB _) = idA == idB
+  (==) (Connection idA _ _) (Connection idB _ _) = idA == idB
 
 instance Ord Connection where
-  compare (Connection idA _) (Connection idB _) = compare idA idB
+  compare (Connection idA _ _) (Connection idB _ _) = compare idA idB
 
 instance Show Connection where
-  show (Connection connectionId _) = show connectionId
+  show (Connection connectionId clientId _) = show connectionId <> " " <> show clientId

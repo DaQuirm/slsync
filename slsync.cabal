@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3bea50d384a03a4b2b1a8892714cdec461ec080493a54e78e7a0cff0c9122aab
+-- hash: 504687c77d0a6d966a75c04d5dc7b7a9c476b1caf2e3354db1ac476e90abef70
 
 name:           slsync
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Config
       Connection
       Effect
+      Message
       Query
       ServerApplication
       Session
@@ -53,6 +54,7 @@ library
     , transformers
     , uuid
     , wai
+    , wai-cors
     , wai-websockets
     , warp
     , websockets
@@ -79,6 +81,7 @@ executable slsync
     , transformers
     , uuid
     , wai
+    , wai-cors
     , wai-websockets
     , warp
     , websockets
@@ -106,6 +109,7 @@ test-suite slsync-test
     , transformers
     , uuid
     , wai
+    , wai-cors
     , wai-websockets
     , warp
     , websockets

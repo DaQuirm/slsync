@@ -7,6 +7,7 @@ import           Control.Concurrent             ( newMVar )
 import           Data.Monoid                    ( (<>) )
 import qualified Network.Wai.Handler.Warp       as Warp
 import           Network.Wai.Handler.WebSockets ( websocketsOr )
+import           Network.Wai.Middleware.Cors (simpleCors)
 import qualified Network.WebSockets             as WebSocket
 import qualified System.Logger                  as Logger
 import qualified System.Envy                    as Envy
@@ -33,6 +34,6 @@ startServer = do
           settings    = setLogLevel . setOutput $ Logger.defSettings
       logger <- Logger.new settings
       Logger.info logger $ Logger.msg infoMessage
-      Warp.run port $ websocketsOr WebSocket.defaultConnectionOptions
+      Warp.run port $ simpleCors $ websocketsOr WebSocket.defaultConnectionOptions
                                    (application logger stateVar)
                                    (httpApp logger stateVar)

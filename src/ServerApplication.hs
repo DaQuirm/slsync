@@ -8,6 +8,7 @@ import           Control.Exception                ( catch )
 import           Control.Monad                    ( forever )
 import           Data.Text                        ( pack )
 import           Data.ByteString                  ( ByteString )
+import           Data.ByteString.Lazy             ( fromStrict )
 import qualified Network.WebSockets               as WebSocket
 import           System.Logger                    ( Level(..), Logger )
 import qualified System.Logger                    as Logger
@@ -23,17 +24,19 @@ import           Network.Wai
 import           Network.Wai.Internal ( ResponseReceived(..))
 
 
-import           State
-                 ( State, connect, createSession )
-import           Connection                       ( Connection(..) )
+import State
+                 ( State, connect, disconnect, createSession, assignClientId )
+import           Connection                       ( Connection(..), ConnectionId, ClientId )
 import           Query                            ( success )
 import           StateQuery                       ( ServiceError, StateQuery )
 import           Effect
                  ( Effect(Log, Send, Respond, List), handle )
 import           Session                          ( Session(..) )
+import Message (Message(..))
 
 data Action =
     Connect Connection
+  | AssignClientId ClientId Connection
   | Disconnect Connection WebSocket.ConnectionException
   | CreateSession Session
 
@@ -63,9 +66,11 @@ stateLogic (Connect connection) = update $> effect
 
     effect = Log Info $ "New connection: " <> pack (show connection)
 
-stateLogic (Disconnect connection exception) =
-  success $ Log Info $ "Disconnected: " <> pack (show connection) <> " "
-  <> pack (show exception)
+stateLogic (Disconnect connection exception) = update $> effect
+  where
+    update = StateT.modify $ State.disconnect connection
+    effect = Log Info $ "Disconnected: " <> pack (show connection) <> " "
+             <> pack (show exception)
 
 stateLogic (CreateSession session) = update $> effect
   where
@@ -75,6 +80,11 @@ stateLogic (CreateSession session) = update $> effect
       List [ Respond $ responseLBS status200 [] ""
            , Log Info $ "New session: " <> pack (show session)
            ]
+
+stateLogic (AssignClientId clientId connection) = do
+  StateT.modify $ State.assignClientId clientId connection
+  state <- StateT.get
+  pure $ Log Info $ "Connection identity: " <> pack (show state)
 
 notFound :: Response
 notFound =
@@ -87,7 +97,7 @@ httpApp logger stateVar request respond = do
     "POST" -> case getSessionName request of
       Nothing   -> respond notFound
       Just name -> do
-        updateState logger respond stateVar $ CreateSession $ Session name
+        updateState logger respond stateVar $ CreateSession $ Session name [name]
         pure ResponseReceived
     _ -> respond notFound
   where
@@ -100,11 +110,15 @@ application logger stateVar pending = do
   WebSocket.withPingThread wsConnection 30 (pure ()) (pure ())
 
   connectionId <- UUID.nextRandom
-  let connection = Connection connectionId wsConnection
+  let connection = Connection connectionId Nothing wsConnection
   updateState logger dummyResponder stateVar (Connect connection)
 
   catch (forever (do
-                    string <- WebSocket.receiveData wsConnection :: IO ByteString
-                    Logger.trace logger $ Logger.msg $
-                      "Received message: " <> string))
+                    string <- fromStrict <$> (WebSocket.receiveData wsConnection :: IO ByteString)
+                    Logger.trace logger $ Logger.msg $ "Received message: " <> show string
+                    case Aeson.eitherDecode string of
+                      Left  _ -> pure ()
+                      Right (ClientId clientId) ->
+                        updateState logger dummyResponder stateVar (AssignClientId (pack $ show clientId) connection)))
+
         (updateState logger dummyResponder stateVar . Disconnect connection)
