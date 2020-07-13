@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module ServerApplication where
 
@@ -6,7 +8,7 @@ import           Data.List                        ( uncons )
 import           Data.Functor                     ( ($>) )
 import           Control.Exception                ( catch )
 import           Control.Monad                    ( forever )
-import           Data.Text                        ( pack )
+import           Data.Text                        ( Text, pack, splitOn )
 import           Data.ByteString                  ( ByteString )
 import           Data.ByteString.Lazy             ( fromStrict )
 import qualified Network.WebSockets               as WebSocket
@@ -33,6 +35,8 @@ import           Effect
                  ( Effect(Log, Send, Respond, List), handle )
 import           Session                          ( Session(..) )
 import Message (Message(..))
+import           GHC.Generics (Generic)
+
 
 data Action =
     Connect Connection
@@ -90,15 +94,20 @@ notFound :: Response
 notFound =
   responseLBS status404 [ ("Content-Type", "text/plain") ] "404 - Not Found"
 
+newtype Publishers = Publishers { whitelist :: Text } deriving (Show, Generic, Aeson.FromJSON)
+
 httpApp :: Logger -> MVar State -> Application
 httpApp logger stateVar request respond = do
   requestBody <- strictRequestBody request
   case requestMethod request of
     "POST" -> case getSessionName request of
       Nothing   -> respond notFound
-      Just name -> do
-        updateState logger respond stateVar $ CreateSession $ Session name [name]
-        pure ResponseReceived
+      Just name ->
+        case Aeson.decode requestBody of
+          Nothing         -> respond notFound
+          Just (Publishers publishers) -> do
+            updateState logger respond stateVar $ CreateSession $ Session name $ splitOn "," publishers
+            pure ResponseReceived
     _ -> respond notFound
   where
     getSessionName request =
