@@ -24,7 +24,7 @@ empty =
         }
 
 connect :: Connection -> State -> State
-connect connection@(Connection connectionId _ _) =
+connect connection@(Connection connectionId _ _ _) =
   (connections . at connectionId) ?~ connection
 
 createSession :: Session -> State -> State
@@ -32,10 +32,10 @@ createSession session@(Session sessionId _) =
   (sessions . at sessionId) ?~ session
 
 disconnect :: Connection -> State -> State
-disconnect connection@(Connection connectionId _ _) =
+disconnect connection@(Connection connectionId _ _ _) =
   (connections . at connectionId) .~ Nothing
 
 assignClientId :: ClientId -> Connection -> State -> State
-assignClientId clientId (Connection connectionId _ connection) =
+assignClientId clientId (Connection connectionId _ sessionId connection) =
   (connections . at connectionId)
-  ?~ Connection connectionId (Just clientId) connection
+  ?~ Connection connectionId (Just clientId) sessionId connection

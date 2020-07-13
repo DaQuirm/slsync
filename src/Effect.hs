@@ -1,6 +1,6 @@
 module Effect where
 
-import           Data.ByteString    ( ByteString )
+import           Data.ByteString.Lazy    ( ByteString )
 import           Data.Monoid        ( (<>) )
 import           Data.Text          ( Text )
 import           Data.Functor ( ($>) )
@@ -22,7 +22,7 @@ handle :: Logger -> (Response -> IO ResponseReceived) -> Effect -> IO ()
 handle logger _ (Log level string) =
   Logger.log logger level $ Logger.msg string
 
-handle _ _ (Send (Connection _ _ connection) string) =
+handle _ _ (Send (Connection _ _ _ connection) string) =
   WebSocket.sendTextData connection string
 
 handle _ respond (Respond response) = respond response $> ()
