@@ -28,6 +28,7 @@ dependencies:
 - lens
 - uuid
 - aeson
+- directory
 - tinylog
 - envy
 - wai

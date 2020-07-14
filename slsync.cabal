@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 504687c77d0a6d966a75c04d5dc7b7a9c476b1caf2e3354db1ac476e90abef70
+-- hash: 23a1fe16fcff1b60db59e9d49191d86404e5aab54f17e17ea016ac8c5e42300a
 
 name:           slsync
 version:        0.1.0.0
@@ -46,6 +46,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , directory
     , envy
     , http-types
     , lens
@@ -72,6 +73,7 @@ executable slsync
     , base >=4.7 && <5
     , bytestring
     , containers
+    , directory
     , envy
     , http-types
     , lens
@@ -100,6 +102,7 @@ test-suite slsync-test
     , base >=4.7 && <5
     , bytestring
     , containers
+    , directory
     , envy
     , http-types
     , lens

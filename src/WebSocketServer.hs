@@ -7,15 +7,15 @@ import           Control.Concurrent             ( newMVar )
 import           Data.Monoid                    ( (<>) )
 import qualified Network.Wai.Handler.Warp       as Warp
 import           Network.Wai.Handler.WebSockets ( websocketsOr )
-import           Network.Wai.Middleware.Cors (simpleCors)
+import           Network.Wai.Middleware.Cors    ( simpleCors )
 import qualified Network.WebSockets             as WebSocket
 import qualified System.Logger                  as Logger
 import qualified System.Envy                    as Envy
-import qualified Data.ByteString.Char8     as ByteString
-import           System.Logger ( Level(..), Logger )
+import qualified Data.ByteString.Char8          as ByteString
+import           System.Logger                  ( Level(..), Logger )
+import           System.Directory               ( createDirectoryIfMissing )
 
-
-import State (State)
+import           State                          ( State )
 import qualified State
 import           ServerApplication              ( application, httpApp )
 import           Config                         ( Config(Config) )
@@ -29,11 +29,13 @@ startServer = do
       let infoMessage = "Listening on port " <> show port
       putStrLn infoMessage
       stateVar <- newMVar State.empty
+      createDirectoryIfMissing True "logs"
       let setLogLevel = Logger.setLogLevel logLevel
           setOutput   = Logger.setOutput $ Logger.Path "logs/slsync.log"
           settings    = setLogLevel . setOutput $ Logger.defSettings
       logger <- Logger.new settings
       Logger.info logger $ Logger.msg infoMessage
-      Warp.run port $ simpleCors $ websocketsOr WebSocket.defaultConnectionOptions
-                                   (application logger stateVar)
-                                   (httpApp logger stateVar)
+      Warp.run port $ simpleCors $
+        websocketsOr WebSocket.defaultConnectionOptions
+                     (application logger stateVar)
+                     (httpApp logger stateVar)
