@@ -1,13 +1,15 @@
-{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module WebSocketServer ( startServer ) where
 
 import           Control.Concurrent             ( newMVar )
 import           Data.Monoid                    ( (<>) )
+import           Network.Wai                    ( Middleware )
 import qualified Network.Wai.Handler.Warp       as Warp
 import           Network.Wai.Handler.WebSockets ( websocketsOr )
-import           Network.Wai.Middleware.Cors    ( simpleCors )
+import           Network.Wai.Middleware.Cors
+                 ( CorsResourcePolicy(..), cors, simpleCorsResourcePolicy
+                 , simpleHeaders )
 import qualified Network.WebSockets             as WebSocket
 import qualified System.Logger                  as Logger
 import qualified System.Envy                    as Envy
@@ -19,6 +21,12 @@ import           State                          ( State )
 import qualified State
 import           ServerApplication              ( application, httpApp )
 import           Config                         ( Config(Config) )
+
+corsMiddleware :: Middleware
+corsMiddleware =
+  cors (const $
+        Just simpleCorsResourcePolicy { corsRequestHeaders = simpleHeaders
+                                      })
 
 startServer :: IO ()
 startServer = do
@@ -35,7 +43,7 @@ startServer = do
           settings    = setLogLevel . setOutput $ Logger.defSettings
       logger <- Logger.new settings
       Logger.info logger $ Logger.msg infoMessage
-      Warp.run port $ simpleCors $
+      Warp.run port $ corsMiddleware $
         websocketsOr WebSocket.defaultConnectionOptions
                      (application logger stateVar)
                      (httpApp logger stateVar)
