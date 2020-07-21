@@ -33,7 +33,7 @@ import           Query                            ( success )
 import           StateQuery                       ( ServiceError, StateQuery, canPublish, sessionConnections, getConnection )
 import           Effect
                  ( Effect(Log, Send, Respond, List), handle )
-import           Session                          ( Session(..) )
+import           Session                          ( Session(..), fromText )
 import Message (Message(..))
 import           GHC.Generics (Generic)
 
@@ -114,7 +114,7 @@ httpApp logger stateVar request respond = do
           Nothing -> case Aeson.decode requestBody of
             Nothing                      -> respond notFound
             Just (Publishers publishers) -> do
-              updateState logger respond stateVar $ CreateSession $ Session sessionId $ splitOn "," publishers
+              updateState logger respond stateVar $ CreateSession $ Session sessionId $ fromText publishers
               pure ResponseReceived
           Just _ -> respond $ responseLBS status302 [] "Session already exists"
 

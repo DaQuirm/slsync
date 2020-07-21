@@ -2,16 +2,24 @@
 
 module StateQuery where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict                  as Map
 import qualified Control.Monad.Trans.State.Strict as StateT
-import Control.Lens ((^.))
+import           Control.Lens                     ( (^.) )
 
-import           Query      ( Query, failure, success )
-import           State      ( State, sessions, connections )
-import           Connection ( Connection(..), ConnectionId )
-import Session (Session(..), SessionId)
+import           Query                            ( Query, failure, success )
+import           State
+                 ( State, connections, sessions )
+import           Connection
+                 ( Connection(..), ConnectionId )
+import           Session
+                 ( PublisherPolicy(..), Session(..), SessionId )
 
-data ServiceError = SomethingWentWrong | ConnectionNotFound | UnidentifiedClient | SessionNotFound | NotAPublisher
+data ServiceError
+  = SomethingWentWrong
+  | ConnectionNotFound
+  | UnidentifiedClient
+  | SessionNotFound
+  | NotAPublisher
   deriving ( Show )
 
 type StateQuery a b = Query State ServiceError a b
@@ -29,10 +37,14 @@ canPublish (Connection _ (Just clientId) sessionId _) = do
   state <- StateT.get
   case Map.lookup sessionId (state ^. sessions) of
     Nothing -> failure SessionNotFound
-    Just Session {publishers} | clientId `elem` publishers -> success ()
-                              | otherwise -> failure NotAPublisher
+    Just Session{publisherPolicy} -> case publisherPolicy of
+      AllowAll -> success ()
+      Whitelist publishers
+        | clientId `elem` publishers -> success ()
+        | otherwise -> failure NotAPublisher
 
 sessionConnections :: StateQuery SessionId [Connection]
 sessionConnections sessionId = do
   state <- StateT.get
-  success $ filter (\(Connection _ _ sId _) -> sId == sessionId) $ map snd (Map.toList $ state ^. connections)
+  success $ filter (\(Connection _ _ sId _) -> sId == sessionId) $
+    map snd (Map.toList $ state ^. connections)

@@ -148,11 +148,6 @@
                 "linebreaks": "after",
                 "spaces": "after"
             },
-            "=": {
-                "force-linebreak": false,
-                "linebreaks": "after",
-                "spaces": "both"
-            },
             "@": {
                 "force-linebreak": false,
                 "linebreaks": "none",
