@@ -143,9 +143,9 @@ application logger stateVar pending = do
                         case Aeson.eitherDecode string of
                           Right (ClientId clientId) ->
                             updateState logger dummyResponder stateVar (AssignClientId (pack $ show clientId) connectionId)
-                          Right (ProtocolMessage message) ->
-                            updateState logger dummyResponder stateVar (Broadcast message connectionId)
-                          _ -> pure ()
+                          Right ProtocolMessage ->
+                            updateState logger dummyResponder stateVar (Broadcast string connectionId)
+                          _ -> Logger.warn logger $ Logger.msg ("Unrecognized message" :: String)
                           ))
 
             (updateState logger dummyResponder stateVar . Disconnect connection)

@@ -5,10 +5,10 @@ import Data.Aeson (FromJSON(..), Value(..), encode)
 
 data Message
   = ClientId Int
-  | ProtocolMessage ByteString
+  | ProtocolMessage
   deriving Show
 
 instance FromJSON Message where
     parseJSON number@(Number _) = ClientId <$> parseJSON number
-    parseJSON message = pure $ ProtocolMessage $ encode message
+    parseJSON _ = pure ProtocolMessage
 
