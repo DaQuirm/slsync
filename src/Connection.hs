@@ -1,15 +1,15 @@
 module Connection where
 
-import           Data.UUID          ( UUID )
+import           Data.Text          (Text)
+import           Data.UUID          (UUID)
 import qualified Network.WebSockets as WebSockets
-import Data.Text (Text)
 
-import Session (SessionId)
+import           Session            (SessionId)
+import           Subscription       (Subscription)
 
 type ConnectionId = UUID
-type ClientId = Text
 
-data Connection = Connection ConnectionId (Maybe ClientId) SessionId WebSockets.Connection
+data Connection = Connection ConnectionId (Maybe Subscription) SessionId WebSockets.Connection
 
 instance Eq Connection where
   (==) (Connection idA _ _ _) (Connection idB _ _ _) = idA == idB

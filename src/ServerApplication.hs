@@ -1,48 +1,58 @@
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
 
 module ServerApplication where
 
-import           Data.List                        ( uncons )
-import           Data.Functor                     ( ($>) )
-import           Control.Exception                ( catch )
-import           Control.Monad                    ( forever )
-import           Data.Text                        ( Text, pack, splitOn )
-import           Data.ByteString.Lazy             ( ByteString, fromStrict )
-import qualified Data.Map.Strict as Map
-import Control.Lens ((^.))
-import qualified Network.WebSockets               as WebSocket
-import           System.Logger                    ( Level(..), Logger )
-import qualified System.Logger                    as Logger
-import qualified Data.UUID.V4                     as UUID
-import qualified Data.Aeson                       as Aeson
+import           Control.Concurrent               (MVar, putMVar, readMVar,
+                                                   takeMVar)
+import           Control.Exception                (catch)
+import           Control.Lens                     ((^.))
+import           Control.Monad                    (forever)
 import qualified Control.Monad.Trans.State.Strict as StateT
-import           Network.HTTP.Types
-                 ( decodePathSegments, status200, status302, status404 )
-import           Control.Concurrent               ( MVar, readMVar, putMVar, takeMVar )
-import           Network.Wai
-                 ( Application, Response, queryString
-                 , rawPathInfo, requestMethod, responseLBS, strictRequestBody )
-import           Network.Wai.Internal ( ResponseReceived(..))
+import qualified Data.Aeson                       as Aeson
+import           Data.ByteString.Lazy             (ByteString, fromStrict,
+                                                   isPrefixOf, pack)
+import           Data.Functor                     (($>))
+import           Data.List                        (uncons)
+import qualified Data.Map.Strict                  as Map
+import           Data.Text                        (Text)
+import qualified Data.Text                        as Text
+import qualified Data.UUID.V4                     as UUID
+import           Network.HTTP.Types               (decodePathSegments,
+                                                   status200, status302,
+                                                   status404)
+import           Network.Wai                      (Application, Response,
+                                                   queryString, rawPathInfo,
+                                                   requestMethod, responseLBS,
+                                                   strictRequestBody)
+import           Network.Wai.Internal             (ResponseReceived (..))
+import qualified Network.WebSockets               as WebSocket
+import           System.Logger                    (Level (..), Logger)
+import qualified System.Logger                    as Logger
 
 
-import State ( State, connect, disconnect, createSession, assignClientId, sessions )
-import           Connection                       ( Connection(..), ConnectionId, ClientId )
-import           Query                            ( success )
-import           StateQuery                       ( ServiceError, StateQuery, canPublish, sessionConnections, getConnection )
-import           Effect
-                 ( Effect(Log, Send, Respond, List), handle )
-import           Session                          ( Session(..), fromText )
-import Message (Message(..))
-import           GHC.Generics (Generic)
+import           Connection                       (Connection (..),
+                                                   ConnectionId)
+import           Effect                           (Effect (List, Log, Respond, Send),
+                                                   handle)
+import           GHC.Generics                     (Generic)
+import           Query                            (success)
+import           Session                          (Session (..), fromText)
+import           State                            (State, assignSubscription,
+                                                   connect, createSession,
+                                                   disconnect, sessions)
+import           StateQuery                       (ServiceError, StateQuery,
+                                                   canPublish, getConnection,
+                                                   sessionConnections)
+import           Subscription                     (Subscription (..))
 
 
 data Action =
     Connect Connection
   | Disconnect Connection WebSocket.ConnectionException
   | CreateSession Session
-  | AssignClientId ClientId ConnectionId
+  | Subscribe Subscription ConnectionId
   | Broadcast ByteString ConnectionId
 
 dummyResponder :: Response -> IO ResponseReceived
@@ -58,7 +68,7 @@ updateState logger respond stateVar action = do
   case StateT.runStateT (stateLogic action) state of
     Left err -> do
       putMVar stateVar state
-      handle logger respond $ Log Warn $ pack $ show err
+      handle logger respond $ Log Warn $ Text.pack $ show err
     Right (effect, newState) -> do
       putMVar stateVar newState
       handle logger respond effect
@@ -68,13 +78,13 @@ stateLogic (Connect connection) = update $> effect
   where
     update = StateT.modify $ State.connect connection
 
-    effect = Log Info $ "New connection: " <> pack (show connection)
+    effect = Log Info $ "New connection: " <> Text.pack (show connection)
 
 stateLogic (Disconnect connection exception) = update $> effect
   where
     update = StateT.modify $ State.disconnect connection
-    effect = Log Info $ "Disconnected: " <> pack (show connection) <> " "
-             <> pack (show exception)
+    effect = Log Info $ "Disconnected: " <> Text.pack (show connection) <> " "
+             <> Text.pack (show exception)
 
 stateLogic (CreateSession session) = update $> effect
   where
@@ -82,25 +92,34 @@ stateLogic (CreateSession session) = update $> effect
 
     effect =
       List [ Respond $ responseLBS status200 [] ""
-           , Log Info $ "New session: " <> pack (show session)
+           , Log Info $ "New session: " <> Text.pack (show session)
            ]
 
-stateLogic (AssignClientId clientId connectionId) = do
+stateLogic (Subscribe subscription@Subscription{} connectionId) = do
   connection <- getConnection connectionId
-  StateT.modify $ State.assignClientId clientId connection
-  pure $ Log Info $ "Connection identity: " <> clientId <> " " <> pack (show connectionId)
+  StateT.modify $ State.assignSubscription subscription connection
+  pure $ Log Info $ "Connection subscription: "  <> Text.pack (show connectionId) <> Text.pack (show subscription) <> " "
 
 stateLogic (Broadcast message connectionId) = do
   connection@(Connection _ _ sessionId _) <- getConnection connectionId
   canPublish connection
   connections <- sessionConnections sessionId
-  pure $ List $ flip Send message <$> connections
+  let
+    recipientFilter (Connection _ mSubscription _ _) =
+      case mSubscription of
+        Just (Subscription _ prefixFilters) ->
+          all (\prefixFilter -> not $ (pack prefixFilter) `isPrefixOf` message) prefixFilters
+        Nothing -> False
+    recipients = filter recipientFilter connections
+   in pure $ List $ flip Send message <$> recipients
 
 notFound :: Response
 notFound =
   responseLBS status404 [ ("Content-Type", "text/plain") ] "404 - Not Found"
 
-newtype Publishers = Publishers { whitelist :: Text } deriving (Show, Generic, Aeson.FromJSON)
+newtype Publishers = Publishers
+  { whitelist :: Text }
+  deriving (Show, Generic, Aeson.FromJSON)
 
 httpApp :: Logger -> MVar State -> Application
 httpApp logger stateVar request respond = do
@@ -141,11 +160,10 @@ application logger stateVar pending = do
                         string <- fromStrict <$> WebSocket.receiveData wsConnection :: IO ByteString
                         Logger.trace logger $ Logger.msg $ "Received message: " <> show string
                         case Aeson.eitherDecode string of
-                          Right (ClientId clientId) ->
-                            updateState logger dummyResponder stateVar (AssignClientId (pack $ show clientId) connectionId)
-                          Right ProtocolMessage ->
+                          Right (subscription@Subscription{}) ->
+                            updateState logger dummyResponder stateVar (Subscribe subscription connectionId)
+                          _ ->
                             updateState logger dummyResponder stateVar (Broadcast string connectionId)
-                          _ -> Logger.warn logger $ Logger.msg ("Unrecognized message" :: String)
                           ))
 
             (updateState logger dummyResponder stateVar . Disconnect connection)

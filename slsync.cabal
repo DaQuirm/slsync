@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 23a1fe16fcff1b60db59e9d49191d86404e5aab54f17e17ea016ac8c5e42300a
+-- hash: c88c87ad972b6582f1e9f2741e20084bdec596b627c1ff0d16bf870a4e72d175
 
 name:           slsync
 version:        0.1.0.0
@@ -30,12 +30,12 @@ library
       Config
       Connection
       Effect
-      Message
       Query
       ServerApplication
       Session
       State
       StateQuery
+      Subscription
       WebSocketServer
   other-modules:
       Paths_slsync

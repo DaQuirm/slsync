@@ -2,13 +2,15 @@
 
 module State where
 
-import           Connection      ( ClientId, Connection(..) )
-import           Control.Lens    ( (?~), (.~), at )
-import           Control.Lens.TH ( makeLenses )
-import           Data.Map.Strict ( Map )
+import           Connection      (Connection (..))
+import           Control.Lens    (at, (.~), (?~))
+import           Control.Lens.TH (makeLenses)
+import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import           Data.UUID       ( UUID )
-import           Session         ( Session(..), SessionId )
+import           Data.UUID       (UUID)
+
+import           Session         (Session (..), SessionId)
+import           Subscription    (Subscription)
 
 data State =
   State { _connections :: Map UUID Connection
@@ -35,7 +37,7 @@ disconnect :: Connection -> State -> State
 disconnect connection@(Connection connectionId _ _ _) =
   (connections . at connectionId) .~ Nothing
 
-assignClientId :: ClientId -> Connection -> State -> State
-assignClientId clientId (Connection connectionId _ sessionId connection) =
+assignSubscription :: Subscription -> Connection -> State -> State
+assignSubscription clientId (Connection connectionId _ sessionId connection) =
   (connections . at connectionId)
   ?~ Connection connectionId (Just clientId) sessionId connection

@@ -2,17 +2,17 @@
 
 module StateQuery where
 
-import qualified Data.Map.Strict                  as Map
+import           Control.Lens                     ((^.))
 import qualified Control.Monad.Trans.State.Strict as StateT
-import           Control.Lens                     ( (^.) )
+import qualified Data.Map.Strict                  as Map
 
-import           Query                            ( Query, failure, success )
-import           State
-                 ( State, connections, sessions )
-import           Connection
-                 ( Connection(..), ConnectionId )
-import           Session
-                 ( PublisherPolicy(..), Session(..), SessionId )
+import           Connection                       (Connection (..),
+                                                   ConnectionId)
+import           Query                            (Query, failure, success)
+import           Session                          (PublisherPolicy (..),
+                                                   Session (..), SessionId)
+import           State                            (State, connections, sessions)
+import           Subscription                     (Subscription (..))
 
 data ServiceError
   = SomethingWentWrong
@@ -28,12 +28,12 @@ getConnection :: StateQuery ConnectionId Connection
 getConnection connectionId = do
   state <- StateT.get
   case Map.lookup connectionId (state ^. connections) of
-    Nothing -> failure ConnectionNotFound
+    Nothing         -> failure ConnectionNotFound
     Just connection -> success connection
 
 canPublish :: StateQuery Connection ()
 canPublish (Connection _ Nothing _ _) = failure UnidentifiedClient
-canPublish (Connection _ (Just clientId) sessionId _) = do
+canPublish (Connection _ (Just (Subscription {clientId})) sessionId _) = do
   state <- StateT.get
   case Map.lookup sessionId (state ^. sessions) of
     Nothing -> failure SessionNotFound
